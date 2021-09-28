@@ -43,4 +43,10 @@ public class UserMapperTest {
         DynamicDataSourceHolder.remove();
         log.info("master datasource data:{}, slave datasource data:{}", JSON.toJSONString(user), JSON.toJSONString(targetUser));
     }
+
+    @Test
+    public void showTest() {
+        User user = userMapper.selectById(1);
+        log.info("获取到的user对象为:{}", JSON.toJSONString(user));
+    }
 }
