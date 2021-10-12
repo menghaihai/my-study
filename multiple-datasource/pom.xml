@@ -14,6 +14,7 @@
     <modules>
         <module>impl-one</module>
         <module>impl-two</module>
+        <module>impl-three</module>
     </modules>
 
     <properties>
