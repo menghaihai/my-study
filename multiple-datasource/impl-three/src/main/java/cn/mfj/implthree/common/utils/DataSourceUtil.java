@@ -1,8 +1,9 @@
-package cn.mfj.implthree.common;
+package cn.mfj.implthree.common.utils;
 
+import cn.mfj.implthree.config.DynamicDataSource;
 import cn.mfj.implthree.entity.DataSourceInfo;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import cn.mfj.implthree.holder.SpringContextHolder;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -10,7 +11,6 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * @author favian.meng on 2021-10-12
@@ -29,18 +29,16 @@ public class DataSourceUtil {
 
     static {
         driverClassName = "com.mysql.jdbc.Driver";
-        url = "mysql:jdbc://localhost:3306/my_study?characterEncoding=utf-8";
+        url = "jdbc:mysql://localhost:3306/my_study?characterEncoding=utf-8";
         username = "root";
         password = "root";
-        // 初始化配置
-        Properties properties = new Properties();
-        properties.setProperty("driverClassName", driverClassName);
-        properties.setProperty("url", url);
-        properties.setProperty("username", username);
-        properties.setProperty("password", password);
-        HikariConfig hikariConfig = new HikariConfig(properties);
         // 初始化数据源
-        DEFAULT_DATASOURCE = new HikariDataSource(hikariConfig);
+        DEFAULT_DATASOURCE = DataSourceBuilder.create()
+                .driverClassName(driverClassName)
+                .url(url)
+                .username(username)
+                .password(password)
+                .build();
     }
 
     /**
@@ -76,13 +74,31 @@ public class DataSourceUtil {
      * @return sql数据源对象
      */
     public static DataSource conversionDataSource(DataSourceInfo dataSourceInfo) {
-        Properties properties = new Properties();
-        properties.setProperty("driverClassName", dataSourceInfo.getDriverClassName());
-        properties.setProperty("url", dataSourceInfo.getUrl());
-        properties.setProperty("username", dataSourceInfo.getUsername());
-        properties.setProperty("password", dataSourceInfo.getPassword());
-        HikariConfig hikariConfig = new HikariConfig(properties);
-        // 初始化数据源
-        return new HikariDataSource(hikariConfig);
+        return DataSourceBuilder.create()
+                .driverClassName(dataSourceInfo.getDriverClassName())
+                .url(dataSourceInfo.getUrl())
+                .username(dataSourceInfo.getUsername())
+                .password(dataSourceInfo.getPassword())
+                .build();
+    }
+
+    /**
+     * 获取默认数据源
+     *
+     * @return 默认数据源对象
+     */
+    public static DataSource getDefaultDataSource() {
+        return DEFAULT_DATASOURCE;
+    }
+
+    /**
+     * 添加数据源信息
+     *
+     * @param dataSourceInfo 数据源对象信息
+     */
+    public static void addDataSource(DataSourceInfo dataSourceInfo) {
+        DynamicDataSource dynamicDataSource = SpringContextHolder.getApplicationContext().getBean(DynamicDataSource.class);
+        dynamicDataSource.addDataSource(dataSourceInfo.getCode(), conversionDataSource(dataSourceInfo));
+
     }
 }

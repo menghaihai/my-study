@@ -22,14 +22,18 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
     /**
      * 初始化数据源
      *
-     * @param initDsMap 初始化装填的数据源容器对象
+     * @param defaultDataSource 默认数据源
+     * @param initDsMap         初始化装填的数据源容器对象
      */
-    public DynamicDataSource(Map<Object, Object> initDsMap) {
+    public DynamicDataSource(DataSource defaultDataSource, Map<Object, Object> initDsMap) {
         this.backRefreshDsMap = initDsMap;
+        super.setDefaultTargetDataSource(defaultDataSource);
+        super.setTargetDataSources(initDsMap);
+        super.afterPropertiesSet();
     }
 
     /**
-     * 动态加价数据源
+     * 动态添加数据源
      *
      * @param code       数据源code
      * @param dataSource 数据源对象

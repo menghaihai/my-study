@@ -1,7 +1,6 @@
 package cn.mfj.implthree.config;
 
-import cn.mfj.implthree.common.DataSourceUtil;
-import cn.mfj.implthree.entity.DataSourceInfo;
+import cn.mfj.implthree.common.utils.DataSourceUtil;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -38,9 +37,6 @@ public class DataSourceConfig {
     public DataSource dynamicDataSource() {
         // 查询到数据库存储的数据源
         Map<Object, Object> dataSources = DataSourceUtil.getDataSources();
-        DynamicDataSource dataSource = new DynamicDataSource(dataSources);
-        dataSource.setDefaultTargetDataSource("DEFAULT");
-
-        return null;
+        return new DynamicDataSource(DataSourceUtil.getDefaultDataSource(), dataSources);
     }
 }
