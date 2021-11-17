@@ -1,6 +1,5 @@
 package cn.mfj.impltwo.config;
 
-import cn.mfj.impltwo.common.DataSourceConstant;
 import cn.mfj.impltwo.holder.DynamicDataSourceHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;

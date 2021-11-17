@@ -1,6 +1,7 @@
 package cn.mfj.impltwo.holder;
 
 import cn.mfj.impltwo.common.DataSourceConstant;
+import org.springframework.util.StringUtils;
 
 /**
  * @author favian.meng on 2021-09-28
@@ -28,7 +29,7 @@ public class DynamicDataSourceHolder {
      */
     public static String get() {
         String dataSourceKey = DATASOURCE_CONTEXT_KEYS_HOLDER.get();
-        return dataSourceKey == null ? DataSourceConstant.MASTER_DATA_SOURCE : dataSourceKey;
+        return StringUtils.isEmpty(dataSourceKey) ? DataSourceConstant.MASTER_DATA_SOURCE : dataSourceKey;
     }
 
     /**
