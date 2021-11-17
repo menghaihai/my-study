@@ -42,7 +42,7 @@ public class DynamicDataSourceConfig {
         Map<Object, Object> datasourceMap = new HashMap<>();
         datasourceMap.put("MASTER", masterDataSource());
         datasourceMap.put("SLAVE", slaveDataSource());
-        DynamicDataSource dynamicDataSource = new DynamicDataSource();
+        DynamicDataSource dynamicDataSource = new DynamicDataSource(masterDataSource(), datasourceMap);
         dynamicDataSource.setDefaultTargetDataSource(masterDataSource());
         dynamicDataSource.setTargetDataSources(datasourceMap);
         return dynamicDataSource;
