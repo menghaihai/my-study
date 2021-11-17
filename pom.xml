@@ -18,7 +18,7 @@
     <modules>
         <module>rabbitmq-study</module>
         <module>multiple-datasource</module>
-        <module>common-util</module>
+        <module>common-utils</module>
     </modules>
 
     <properties>
