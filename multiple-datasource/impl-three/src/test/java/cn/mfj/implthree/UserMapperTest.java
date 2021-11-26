@@ -30,7 +30,6 @@ public class UserMapperTest {
     @Test
     public void selectListTest() {
         List<User> defaultMasterUsers = userMapper.selectList(Wrappers.lambdaQuery(User.class));
-        DynamicDataSourceHolder.setDataSourceKey("SLAVE");
         List<User> slaveUsers = userMapper.selectList(Wrappers.lambdaQuery(User.class));
         log.info("主数据源查询到的信息为:{}", JSON.toJSONString(defaultMasterUsers));
         log.info("从数据源查询到的信息为:{}", JSON.toJSONString(slaveUsers));
