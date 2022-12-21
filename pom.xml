@@ -20,6 +20,7 @@
         <module>multiple-datasource</module>
         <module>common-utils</module>
         <module>drools-study</module>
+        <module>mongodb-study</module>
     </modules>
 
     <properties>
