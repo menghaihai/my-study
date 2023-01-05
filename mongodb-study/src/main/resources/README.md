@@ -1,6 +1,4 @@
-## 注意事项
-
-### MongoDB结构概念
+## MongoDB结构概念
 1、`文档`MongoDB集合中的记录称为文档。文档含字段和值。
 
 2、`集合`是MongoDB对文档的分组。类似于传统数据库的表，集合存在于数据库中，且不强制要求集合的结构。
@@ -9,8 +7,10 @@
 
 4、`游标`指向查询结果集的指针。客户可以遍历邮游标以检索查询结果。
 
+5、MongoDB文档是基于BSON结构存储的。
 
-### 基本操作语句
+
+## 基本操作语句
 
 1、创建数据库
 
@@ -34,8 +34,7 @@
     
     // 指定创建集合
     db.createCollection("tenantbuying_item_collection", {
-        name: string,
-        age: 
+        name: string
     });
 ```
 
@@ -60,99 +59,430 @@
     db.user.find().forEach(printjson)
 ```
 
-### 基本CRUD操作
+## 基本CRUD操作
 
-#### 插入语句
-注意：MongoDB所有写操作都是单个文档级别的原子操作。
+官方API：`https://www.mongodb.com/docs/v4.0/reference/method/js-collection/`
+
+### 1、插入语句
+插入注意事项：
+> 1、MongoDB所有写操作都是单个文档级别的原子操作。<br/>
+> 2、若集合不存在，插入文档时会创建集合。<br/>
+> 3、MongoDB集合的每个文档都需要唯一的`_id`字段作为主键，若插入的文档无此字段则MongoDB驱动会自动为_id生成ObjectId。此规则也适用于`upsert: true`更新插入的文档。
 
 基本插入API:
-* db.collection.insert({});
-* db.collection.insertOne({});
-* db.collection.insertMany([{}]);
+* db.collection.insert();
+* db.collection.insertOne();
+* db.collection.insertMany();
 
 其它插入API，以下设置upsert:true，实现存在更新，不存在插入:
-* db.collection.updateOne({});
-* db.collection.updateMany({});
-* db.collection.insertMany([{}]);
+* db.collection.update();
+* db.collection.updateOne();
+* db.collection.updateMany();
+* db.collection.findAndModify();
+* db.collection.findOneAndUpdate();
+* db.collection.findOneAndReplace();
+* db.collection.save()
+* db.collection.bulkWrite()
 
+**插入单个文档**
 
-1、基本条件匹配查询
+API：insert()、insertOne()
 ```javascript
-    // 查询xxx字段 = xxx
-    db.tenantbuying_item_collection.find(
-        {
-           code: "item_xxx"
-        }
-    );
-
-    // 查询金额大于100的商品
-    db.tenantbuying_item_collection.find(
-        {
-            salesPrice: {
-                "$gt": 100
+// insert()方法
+db.collectionName.insert(
+    {
+        code: "商品code",
+        name: "商品名称",
+        category: [
+            {
+                categoryCode: "woman",
+                categoryName: "女士"
             }
-        }
-    );
+        ]
+    }
+)
 
-    // 查询前10条数据
-    db.tenantbuying_item_collection.find().limit(10);
-
-    // 查询第二页前10条数据
-    db.tenantbuying_item_collection.find().skip(1).limit(2);
-
-    // 查询结果排序，-1：降序排序，对应DESC；1：升序排序，对应ASC。
-    db.tenantbuying_item_collection.find().sort({stockNum: -1});
-    
-    // 聚合函数
+// insertOne()方法
+db.collectionName.insertOne(
+    {
+        code: "商品code",
+        name: "商品名称"
+    }    
+)
 ```
 
+**插入多个文档**
 
-2、基本更新操作
+API：insert()、insertMany()
 ```javascript
-    // 单个值按条件进行更新
-    db.tenantbuying_item_collection.update(
+// insert()方法
+db.collectionName.insert(
+    [
         {
-            code: "item_xxx"
+            code: "商品code",
+            name: "商品名称"
         },
         {
-           $set: {
-               name: "newGoodsName",
-               onListStatus: 1
-           } 
+            code: "商品code1",
+            name: "商品名称"
         }
-    )
+    ]
+)
+
+// insertMany()方法
+db.collectionName.insertMany(
+    [
+        {
+            code: "商品code",
+            name: "商品名称"
+        },
+        {
+            code: "商品code1",
+            name: "商品名称"
+        }
+    ]
+)
 ```
 
-3、基本移除操作
+
+### 2、查询语句
+
+查询操作符：`https://www.mongodb.com/docs/manual/reference/operator/query/`
+
+注意事项：
+> 1、模糊匹配的两种方式：`$regex` 或 `/^匹配字符/`。<br/> 
+> 2、使用find()方法会检索到文档的一个游标。<br/>
+> 3、findOne()方法其实是find()方法后加了limit(1)。<br/>
+> 4、等值查询要求字段类型也要一致。<br/>
+> 5、查询null或不存在的字段使用 等值判断null 或 $exist操作符。
+
+基本查询API：
+* db.collectionName.find();
+* db.collectionName.findOne();
+* 聚合管道操作，`$match`管道阶段提供了MongoDB的查询过滤;
+
+
+**基本查询操作示例**
 ```javascript
-    db.tenantbuying_item_collection.remove(
-        {
-            code: "item_xxx"
+// 1、等值查询
+db.collectionName.find(
+    {
+        code: "商品code"
+    }
+)
+
+// 2、使用查询操作符查询
+db.collectionName.find(
+    {
+        "displayStatus": 0,
+        "onListStatus": 0,
+        "salesPrice": {
+            "$gte": NumberDecimal(1),
+            "$lte": NumberDecimal(10000)
+        },
+        "skuList": {
+            "$in": ["015715801204"]
+        },
+        "category.categoryCode": "woman",
+        "$or": [
+            {
+                "onListStatus": 0
+            },
+            {
+                "onListStatus": 1
+            },
+        ],
+        "name": {
+            "$regex": "模拟",
+            "$options": ""
+        },
+        "code": {
+            "$exists": true
         }
-    )
+    }
+)
+```
+
+**嵌套文档查询**
+
+嵌套查询三种方式：
+> 1、全文档匹配，要求字段顺序、字段值都一致。<br/>
+> 2、指定文档字段匹配，使用最广泛的方式。<br/>
+> 3、指定文档数组下标匹配。<br/>
+> 3、多条件匹配。
+
+嵌套文档示例：
+```javascript
+// 1、全文档匹配
+db.collectionName.find(
+    {
+        category: {
+            categoryCode: "xx",
+            name: "xxx"
+        }
+    }
+)
+
+// 2、指定文档字段匹配
+db.collectionName.find(
+    {
+        "category.categoryCode": "xxx"
+    }
+)
+
+// 3、指定文档数组下标匹配
+db.collectionName.find(
+    {
+        "category.0.categoryCode": "xxx"
+    }
+)
+
+// 4、多条件匹配
+db.collectionName.find(
+    {
+        category: {
+            $elemMatch: {
+                categoryCode: "woman",
+                categoryGroupCode: "tree"
+            }
+        }
+    }
+)
+```
+
+**数组查询**
+
+数组查询三种查询方式：
+```javascript
+// 1、文档全精度查询，且要求数组值、字段顺序等全匹配
+// category数组字段必须是以下两个元素，且元素也是此排列顺序
+db.collectionName.find(
+    {
+        category: [
+            {
+                "categoryCode": "woman",
+                "categoryGroupCode": "tree"
+            },
+            {
+                "categoryCode": "man",
+                "categoryGroupCode": "tree"
+            }
+        ]
+    }
+)
+
+// 2、查询数组包含以下两个元素，且不在意顺序或者数组中是否包含其他元素
+db.collectionName.find(
+    {
+        category: {
+            $all: [
+                {
+                    "categoryCode": "woman",
+                    "categoryGroupCode": "tree"
+                },
+                {
+                    "categoryCode": "man",
+                    "categoryGroupCode": "tree"
+                }
+            ]
+        }
+    }
+)
+```
+
+**数组中嵌套文档查询**
+
+**查询结果返回指定字段**
+
+结果返回指定字段：
+```javascript
+// 映射会返回在映射文档中显示设置为1的字段
+db.collectionName.find(
+    {},
+    {
+        code: 1,
+        name: 1,
+        "category.categoryCode": 1
+    }
+)
+```
+
+结果排除指定字段：
+```javascript
+// 映射会排序在映射文档中设置为0的字段
+db.collectionName.find(
+    {},
+    {
+        code: 1,
+        name: 0,
+        "category.categoryCode": 0
+    }
+)
+```
+
+嵌套数组返回指定索引字段：
+```javascript
+// $slice: -1，代表返回数组的最后一个元素
+db.collectionName.find(
+    {},
+    {
+        code: 1,
+        name: 1,
+        category: {
+            $slice: -1
+        }
+    }
+)
+```
+
+**Mongo Shell迭代游标**
+
+```javascript
+// 1、使用迭代器处理结果
+var result = db.collectionName.find()
+while (result.hasNext()) {
+    printjson(result.next());
+}
+
+// 2、使用for循环处理结果
+var result = db.collectionName.find()
+result.forEach(printjson)
 ```
 
 
-4、索引操作
 
+### 3、更新操作
+
+更新操作符文档：`https://www.mongodb.com/docs/manual/reference/operator/update/`
+
+更新操作API：
+* db.collectionName.update({filter}, {update}, {options});
+* db.collectionName.updateOne({filter}, {update}, {options});
+* db.collectionName.updateMany({filter}, {update}, {options});
+* db.collectionName.replaceOne({filter}, {update}, {options});
+
+注意事项：
+> 1、`$set`操作符，若字段不存在则会常见该字段，若文档不存在则不会更新。<br/>
+> 2、`$currentDate`操作符，指定字段更新为当前日期，字段不存在则创建该字段。
+
+更新操作示例：
 ```javascript
-    // 创建索引
-    // 创建基于id、code的普通索引；1代表索引的排序方式。
-    db.tenantbuying_item_collection.createIndex(
-        {
-            id: 1,
-            code: 1
+// 1、按指定条件更新单个文档
+db.collectionName.updateOne(
+    {
+        itemCode: "test",
+        stockNum: {
+            $lt: 100
         }
-    );
+    },
+    {
+        $set: {
+            goodsName: "新的商品名称",
+            brand: "clarks"
+        },
+        $currentDate: {
+            updateTime: true
+        }
+    }
+)
 
-    // 查询全部的索引
-    db.tenantbuying_item_collection.getIndexes();
-    
-    // 移除索引
-    db.tenantbuying_item_collection.dropindex(
-        {
-            code: 1
+// 2、文档存在则插入，不存在则更新操作
+db.collectionName.updateOne(
+    {
+        itemCode: "test"
+    },
+    {
+        $set: {
+            goodsName: "新商品",
+            brand: "clarks"
         }
-    );
+    },
+    {
+        upsert: true
+    }
+)
+
+// 3、更新多个文档用法同上
+db.collectionName.updateMany(
+    {
+        ...
+    },
+    {
+        ...
+    }
+)
+
+// 4、替换文档，查询满足条件的文档，将其替换为一个新的文档
+db.collectionName.replaceOne(
+    {
+        itemCode: "test"
+    },
+    {
+        itemCode: "test",
+        goodsName: "新文档",
+        brand: "clarks",
+        onListStatus: 1,
+        category: [
+            {
+                categoryCode: "man",
+                categoryGroupCode: "root"
+            }
+        ]
+    }
+)
+```
+
+
+### 4、删除操作
+
+删除操作API：
+* db.collectionName.delete()：支持删除单个、多个，不支持删除全量。
+* db.collectionName.deleteOne()：仅支持删除单个。
+* db.collectionName.deleteMany()：支持删除多个、全量。
+* db.collectionName.remove()：可选项删除单个、多个。
+* db.collectionName.findOneAndDelete()：可选项排序后删除第一个。
+
+操作示例：
+```javascript
+// 1、删除集合全部文档
+db.collectionName.deleteMany({})
+
+// 2、删除集合满足指定条件的文档
+db.collectionName.delete(
+    {
+        itemCode: "test",
+        onListStatus: 0,
+        salesPrice: {
+            $lt: NumberDecimal(1000)
+        }
+    }
+)
+
+// 3、删除一个文档
+db.collectionName.deleteOne(
+    {
+        onListStatus: 0
+    }
+)
+
+// 4、remove()方法用法与deleteMany()相似，支持指定移除一个
+db.collectionName.remove(
+    {
+        itemCode: "test"
+    },
+    {
+        justOne: true
+    }
+)
+
+// 5、删除查询结果排序后的第一个文档
+db.collectionName.findOneAndDelete(
+    {},
+    {
+        sort: {
+            salesPrice: -1
+        }
+    }
+)
 ```
 
