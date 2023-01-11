@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.util.CastUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -120,8 +121,10 @@ public class MongoDBDemo {
         query.skip(0).limit(10);
 
         // 9、排序
-        query.with(Sort.by(Sort.Direction.ASC, "salesPrice"));
-        query.with(Sort.by(Sort.Direction.DESC, "standardPrice"));
+        List<Sort.Order> sortOrderList = new ArrayList<>();
+        sortOrderList.add(new Sort.Order(Sort.Direction.ASC, "salesPrice", Sort.NullHandling.NULLS_LAST));
+        sortOrderList.add(new Sort.Order(Sort.Direction.DESC, "standardPrice", Sort.NullHandling.NULLS_LAST));
+        query.with(Sort.by(sortOrderList));
 
         // 10、指定结果字段
         query.fields().include("code").include("name").include("category.categoryCode");

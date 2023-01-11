@@ -144,6 +144,80 @@ db.collectionName.insertMany(
 )
 ```
 
+**批量写入操作**
+
+官方文档：`https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/#bulkwrite-example-bulk-write-operation`
+
+描述：db.collectionName.bulkWrite()提供了批量写入、更新、删除操作。
+
+注意：
+
+(1)、有序与无序。<br/>
+bulkWrite()默认执行有序的写入，想要指定无序写入请在选项文档中设置ordered：false。<br/> 
+针对有序写入，MongoDB会串行执行，若某个文档写入过程发生异常，则会直接返回不在进行后续操作。<br/>
+针对无序写入，MongoDB会并行执行，若某个文档写入过程发生异常，则会跳过此数据继续向下执行。
+
+(2)、bulkWrite()支持以下操作。<br/>
+* insertOne();
+* updateOne();
+* updateMany();
+* replaceOne();
+* deleteOne();
+* deleteMany();
+
+
+批处理示例：
+```javascript
+db.collectionName.bulkWrite(
+    [
+        {
+            insertOne: {
+                document: {
+                    code: "test001",
+                    goodsName: "新商品",
+                    brand: "buying",
+                    onListStatus: 1
+                }
+            }
+        },
+        {
+            updateOne: {
+                filter: {
+                    code: "test001"
+                },
+                update: {
+                    $set: {
+                        goodsName: "新商品名称",
+                        brand: "clarks",
+                        onListStatus: 0
+                    }
+                }
+            }
+        },
+        {
+            deleteOne: {
+                filter: {
+                    code: "test002"
+                }
+            }
+        },
+        {
+            replaceOne: {
+                filter: {
+                    code: "test002"
+                },
+                replacement: {
+                    code: "test002",
+                    goodsName: "xxx",
+                    brand: "xxx",
+                    onListStatus: 1
+                }
+            }
+        }
+    ]
+)
+```
+
 
 ### 2、查询语句
 
@@ -162,6 +236,15 @@ db.collectionName.insertMany(
 * 聚合管道操作，`$match`管道阶段提供了MongoDB的查询过滤;
 
 
+常用操作符
+> 比较：$eq, $ne, $gte, $lt, $lte, $in, $nin
+> 逻辑：$and, $not, $nor, $or
+> 元素：$exists, $type
+> 匹配：$expr, $jsonSchema, $mod, $regex, $text, $where
+> 数组：$all, $elemMatch, $size
+> 预测映射：$elemMatch, $meta, $slice
+
+
 **基本查询操作示例**
 ```javascript
 // 1、等值查询
@@ -172,35 +255,51 @@ db.collectionName.find(
 )
 
 // 2、使用查询操作符查询
-db.collectionName.find(
-    {
-        "displayStatus": 0,
-        "onListStatus": 0,
-        "salesPrice": {
-            "$gte": NumberDecimal(1),
-            "$lte": NumberDecimal(10000)
-        },
-        "skuList": {
-            "$in": ["015715801204"]
-        },
-        "category.categoryCode": "woman",
-        "$or": [
-            {
-                "onListStatus": 0
+db.collectionName
+    // 查询函数：find(筛选条件, 展示结果处理)
+    .find(
+        {
+            "displayStatus": 0,
+            "onListStatus": 0,
+            "salesPrice": {
+                "$gte": NumberDecimal(1),
+                "$lte": NumberDecimal(10000)
             },
-            {
-                "onListStatus": 1
+            "skuList": {
+                "$in": ["015715801204"]
             },
-        ],
-        "name": {
-            "$regex": "模拟",
-            "$options": ""
+            "category.categoryCode": "woman",
+            "$or": [
+                {
+                    "onListStatus": 0
+                },
+                {
+                    "onListStatus": 1
+                },
+            ],
+            "name": {
+                "$regex": "模拟",
+                "$options": ""
+            },
+            "code": {
+                "$exists": true
+            }
         },
-        "code": {
-            "$exists": true
+        {
+            "code": 1,
+            "name": -1
         }
-    }
-)
+    )
+    // 排序函数，1：升序,ASC  -1：降序,DESC
+    .sort(
+        {
+            "salesPrice": 1,
+            "code": -1
+        }
+    )
+    // 配合limit()实现分页效果
+    .skip(0)
+    .limit(1)
 ```
 
 **嵌套文档查询**
@@ -483,6 +582,66 @@ db.collectionName.findOneAndDelete(
             salesPrice: -1
         }
     }
+)
+```
+
+## MongoDB聚合
+
+MongoDB提供三种聚合方法:
+* 聚合管道
+* map-reduce function
+* 单用途聚合操作
+
+### 1、聚合管道
+
+官方API地址：`https://docs.mongoing.com/can-kao/mongo-shell-methods/collection-methods/db-collection-aggregate`
+
+函数：db.collectionName.aggregate(管道, 选项);
+
+管道操作符：
+
+| 操作符 | 说明 |
+| ------ | ---- |
+| $match | 对文档进行筛选 |
+| $project | 提取文档中想要获取的字段 |
+| $addFields | 对聚合阶段添加临时字段 |
+
+
+聚合管道示例：
+```javascript
+db.collectionName.aggregate(
+    [
+        // 第一阶段：$match条件过滤
+        {
+            $match: {
+                salesPrice: {
+                    $lt: NumberDecimal(1000)
+                },
+                onListStatus: 1
+            }
+        },
+        // 第二阶段：按指定字段分组，并计算指定字段
+        {
+            $group: {
+                _id: "$code",           // _id标准格式，代表分组id;$code指分组的字段;
+                totalAmount: {          // totalAmount，聚合结果别名
+                    $sum: "$salesPrice"
+                }
+            }
+        },
+        // $project作用：1、提取想要的字段(1-展示，0-不展示)  2、为字段命名别名，注意起别名后字段就没有索引了
+        {
+            $project: {
+                _id: 0,
+                newAmount: "$totalAmount"
+            }
+        },
+        {
+            $sort: {
+                totalAmount: 1
+            }
+        }
+    ]
 )
 ```
 
