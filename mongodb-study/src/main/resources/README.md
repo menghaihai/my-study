@@ -529,6 +529,20 @@ db.collectionName.replaceOne(
         ]
     }
 )
+
+// 5、修改文档，修改数组字段中某个对象的值
+// 单独使用$字符，代指条件匹配元素的位置或下标
+db.collectionName.updateMany(
+    {
+        "salesAttr.attrCode": "size"
+    },
+    {
+        "$set": {
+            "salesAttr.$.attrSort": NumberInt(1),
+            "salesAttr.$.attrName": "尺码"
+        }
+    }
+)
 ```
 
 
